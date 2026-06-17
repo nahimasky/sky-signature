@@ -1,93 +1,101 @@
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import urllib.request
+import ssl
 from PIL import Image, ImageDraw, ImageFont
 import io
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # 1. Разбираем параметры из ссылки. Теперь можно передавать и ?nick=, и ?role=
+        # 1. Разбираем никнейм
         parsed_url = urlparse(self.path)
         query_params = parse_qs(parsed_url.query)
-        
         nick = query_params.get('nick', ['sky'])[0]
-        role = query_params.get('role', ['Head of Civil'])[0] # Текст для правого бэджа
         
         base_text = "Nah, I’m a "
         nick_text = f"{nick}."
         
-        # Оптимальные размеры для форумного баннера
+        # Фиксированный размер возвращен назад (как ты и просил)
         width = 460
         height = 48
         
-        # 2. Создаем холст с благородным темным градиентом
+        # 2. Создаем холст с мягким темным бэкграундом
         img = Image.new('RGB', (width, height))
         draw = ImageDraw.Draw(img)
         
-        # Плавный переход фона для эффекта глубины
-        color_bg_start = (20, 21, 26)  # Ультра-темный графит
-        color_bg_end = (28, 30, 38)    # Чуть светлее к правому краю
+        # Дорогой едва заметный градиент для основы
+        color_bg_start = (13, 14, 18)  # Глубокий графит #0d0e12
+        color_bg_end = (18, 19, 24)    # Чуть светлее к правому краю
         for x in range(width):
             r = int(color_bg_start[0] + (color_bg_end[0] - color_bg_start[0]) * (x / width))
             g = int(color_bg_start[1] + (color_bg_end[1] - color_bg_start[1]) * (x / width))
             b = int(color_bg_start[2] + (color_bg_end[2] - color_bg_start[2]) * (x / width))
             draw.line([(x, 0), (x, height)], fill=(r, g, b))
 
-        # Палитра
-        color_raspberry = (188, 38, 73)    # Тот самый малиновый бордо #bc2649
-        color_text_white = (245, 245, 247)   # Чистый студийный белый
-        color_border = (45, 48, 62)         # Стильная темная рамка
+        # Палитра цветов
+        color_raspberry = (188, 38, 73)    # Твой малиновый бордо #bc2649
+        color_text_white = (245, 245, 247)   # Чистый белый
+        color_border = (36, 38, 49)         # Аккуратная темная рамка
+        color_tech_grey = (55, 58, 72)       # Невзрачный серый для элементов UI
+        color_faint_burgundy = (70, 20, 35)  # Очень тусклый бордовый для фона элементов
         
-        # 3. Геометрия и структура плашки
-        # Внешняя аккуратная рамка скругленного бэджа
-        draw.rounded_rectangle([0, 0, width - 1, height - 1], radius=6, outline=color_border, width=1)
-        
-        # Левый аккуратный неоновый маркер безопасности
-        draw.rounded_rectangle([4, 6, 7, height - 7], radius=2, fill=color_raspberry)
-
-        # 4. Загрузка шрифтов из сети (Inter-SemiBold для веса и четкости)
-        font_url = "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/static/Inter-SemiBold.ttf"
+        # 3. ЖЕЛЕЗНАЯ ЗАГРУЗКА ШРИФТА (Через стабильный CDN jsDelivr + маскировка под Chrome)
+        font_url = "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/inter/static/Inter-SemiBold.ttf"
         try:
-            req = urllib.request.Request(font_url, headers={'User-Agent': 'Mozilla/5.0'})
-            font_data = urllib.request.urlopen(req).read()
-            font_main = ImageFont.truetype(io.BytesIO(font_data), 15)  # Основной текст крупнее
-            font_badge = ImageFont.truetype(io.BytesIO(font_data), 12) # Текст в бэдже чуть меньше
+            ctx = ssl._create_unverified_context()
+            req = urllib.request.Request(
+                font_url, 
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+            )
+            font_data = urllib.request.urlopen(req, context=ctx).read()
+            font_main = ImageFont.truetype(io.BytesIO(font_data), 15)   # Основной текст
+            font_small = ImageFont.truetype(io.BytesIO(font_data), 10)  # Мелкий декоративный шрифт
         except Exception:
+            # Сверхнадежный резерв, если сеть упадет
             font_main = ImageFont.load_default()
-            font_badge = ImageFont.load_default()
-            
-        # 5. Рендеринг левой текстовой части
-        x_pos = 20
+            font_small = ImageFont.load_default()
+
+        # 4. РИСУЕМ СТИЛЬНУЮ ОБТЕКАЕМУЮ КАПСУЛУ
+        try:
+            draw.rounded_rectangle([0, 0, width - 1, height - 1], radius=8, outline=color_border, width=1)
+        except AttributeError:
+            draw.rectangle([0, 0, width - 1, height - 1], outline=color_border, width=1)
+        
+        # Аккуратный малиновый индикатор слева
+        draw.ellipse([14, 21, 20, 27], fill=color_raspberry)
+
+        # 5. ВЫРАВНИВАНИЕ ОСНОВНОГО ТЕКСТА
+        x_pos = 32
         y_pos = height / 2
         
-        # Печатаем "Nah, I'm a "
+        # Наносим "Nah, I'm a "
         draw.text((x_pos, y_pos), base_text, fill=color_text_white, font=font_main, anchor="lm")
         
-        # Считаем сдвиг и печатаем малиновый ник с точкой
+        # Сдвигаем и наносим малиновый ник с точкой
         first_part_len = font_main.getlength(base_text)
         draw.text((x_pos + first_part_len, y_pos), nick_text, fill=color_raspberry, font=font_main, anchor="lm")
         
-        # 6. Рендеринг правого бэджа (Заполняем пустоту в стиле твоего скрина)
-        role_text_width = font_badge.getlength(role)
+        # 6. ЗАПОЛНЕНИЕ ПУСТОТЫ (Эстетичные невзрачные элементы справа)
         
-        # Расчет динамических координат под размер текста роли
-        badge_padding = 12
-        badge_h_padding = 8
-        badge_width = role_text_width + (badge_padding * 2)
+        # Элемент 1: Тонкий вертикальный разделитель (дизайнерская ось)
+        draw.line([320, 14, 320, 34], fill=color_border, width=1)
         
-        badge_x1 = width - 16 - badge_width
-        badge_y1 = (height / 2) - (11 + badge_h_padding / 2)
-        badge_x2 = width - 16
-        badge_y2 = (height / 2) + (11 + badge_h_padding / 2)
+        # Элемент 2: Декоративный микро-код/индекс в стиле интерфейсов
+        draw.text((335, height / 2), "// SYS_OP", fill=color_faint_burgundy, font=font_small, anchor="lm")
         
-        # Рисуем подложку бэджа (как "Head of Civil")
-        draw.rounded_rectangle([badge_x1, badge_y1, badge_x2, badge_y2], radius=6, fill=color_raspberry)
-        
-        # Центрируем текст внутри бэджа
-        badge_text_x = badge_x1 + badge_padding
-        draw.text((badge_text_x, y_pos), role, fill=color_text_white, font=font_badge, anchor="lm")
-        
-        # 7. Отдаем готовый результат
+        # Элемент 3: Серия из трех тонких минималистичных наклонных линий (штрихкод)
+        for i in range(3):
+            line_x = 405 + (i * 5)
+            draw.line([line_x, 18, line_x - 4, 30], fill=color_tech_grey, width=1)
+            
+        # Элемент 4: Едва заметный технологический крестик визира (+) в углу пустоты
+        cross_x, cross_y = 290, 24
+        draw.line([cross_x - 3, cross_y, cross_x + 3, cross_y], fill=color_border, width=1)
+        draw.line([cross_x, cross_y - 3, cross_x, cross_y + 3], fill=color_border, width=1)
+
+        # 7. Отдаем результат на форум
         byte_io = io.BytesIO()
         img.save(byte_io, 'PNG')
         byte_io.seek(0)
