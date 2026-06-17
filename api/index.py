@@ -9,54 +9,42 @@ class handler(BaseHTTPRequestHandler):
         # 1. Разбираем никнейм из ссылки (?nick=...)
         parsed_url = urlparse(self.path)
         query_params = parse_qs(parsed_url.query)
-        nick = query_params.get('nick', ['Sky'])[0]
+        nick = query_params.get('nick', ['sky'])[0]
         
-        text = f"Nickname {nick} is registered."
+        # Новый кастомный текст
+        text = f"Nah, I’m a {nick}."
         
-        # Размеры плашки (стандартный форумный юзербар)
+        # Немного увеличим высоту, чтобы плашка дышала и выглядела как премиальный бэдж
         width = 450
-        height = 35
+        height = 42
         
-        # 2. Создаем пустой холст
-        img = Image.new('RGB', (width, height))
+        # 2. Создаем холст с глубоким матовым премиум-цветом (Тёмно-графитовый #0d0e12)
+        img = Image.new('RGB', (width, height), color=(13, 14, 18))
         draw = ImageDraw.Draw(img)
         
-        # 3. ГЕНЕРИРУЕМ КРАСИВЫЙ ГРАДИЕНТ (Чистый код вместо bg.png)
-        # Цвета перехода: от глубокого черного к стильному сине-стальному (как на твоем скрине)
-        color_start = (5, 17, 29)     # Темный левый край #05111d
-        color_end = (40, 90, 125)     # Синеватый правый край #285a7d
+        # 3. МИНИМАЛИСТИЧНЫЙ ДИЗАЙН
+        # Делаем очень тонкую, едва заметную стильную рамку (#1f212a)
+        draw.rectangle([0, 0, width - 1, height - 1], outline=(31, 33, 42))
         
-        for x in range(width):
-            # Вычисляем промежуточный цвет для каждого пикселя по горизонтали
-            r = int(color_start[0] + (color_end[0] - color_start[0]) * (x / width))
-            g = int(color_start[1] + (color_end[1] - color_start[1]) * (x / width))
-            b = int(color_start[2] + (color_end[2] - color_start[2]) * (x / width))
-            draw.line([(x, 0), (x, height)], fill=(r, g, b))
-            
-        # 4. ДОБАВЛЯЕМ ДЕТАЛИ ОФОРМЛЕНИЯ
-        # Тонкая внутренняя рамка для эффекта стекла/объема
-        draw.rectangle([0, 0, width - 1, height - 1], outline=(60, 120, 160)) # Слегка светящаяся рамка
+        # Свежий акцент: ультра-тонкая вертикальная линия неоново-фиолетового цвета слева
+        # Она заменяет громоздкие иконки и придаёт статусности
+        draw.rectangle([0, 0, 2, height - 1], fill=(124, 58, 237)) 
         
-        # Небольшая декоративная точка-индикатор (как статус "онлайн")
-        draw.ellipse([15, 13, 21, 19], fill=(0, 255, 150)) # Ярко-зеленый маркер
-        
-        # 5. ДИНАМИЧЕСКИЙ ШРИФТ ИЗ СЕТИ (Вместо font.ttf)
-        # Скачиваем аккуратный пиксельный шрифт "Silkscreen" прямо во время работы
-        font_url = "https://github.com/google/fonts/raw/main/ofl/silkscreen/Silkscreen-Regular.ttf"
+        # 4. СОВРЕМЕННЫЙ ШРИФТ ИЗ СЕТИ
+        # Скачиваем чистый, минималистичный шрифт Inter-Medium
+        font_url = "https://github.com/google/fonts/raw/main/ofl/inter/static/Inter-Medium.ttf"
         try:
             font_data = urllib.request.urlopen(font_url).read()
-            font = ImageFont.truetype(io.BytesIO(font_data), 11) # 11 — идеальный размер для этого шрифта
+            font = ImageFont.truetype(io.BytesIO(font_data), 14) # Размер 14 — аккуратный и читаемый
         except Exception:
-            font = ImageFont.load_default() # Резервный вариант, если интернеты упадут
+            font = ImageFont.load_default()
             
-        # 6. РИСУЕМ ТЕКСТ
-        # Сдвигаем текст чуть правее зеленого маркера (X=32) и центрируем по вертикали (Y=10)
-        draw.text((32, 10), text, fill=(255, 255, 255), font=font)
+        # 5. ИДЕАЛЬНОЕ ЦЕНТРИРОВАНИЕ ТЕКСТА
+        # anchor="lm" автоматически выравнивает текст строго по центру вертикали. 
+        # Отступ слева делаем 24 пикселя, чтобы текст красиво отступал от фиолетовой линии.
+        draw.text((24, height / 2), text, fill=(243, 244, 246), font=font, anchor="lm")
         
-        # Правый водяной знак (опционально, можно стереть или написать свой сайт)
-        draw.text((width - 110, 10), "XenForo Status", fill=(130, 180, 210), font=font)
-        
-        # 7. ОТДАЕМ КАРТИНКУ НА ФОРУМ
+        # 6. ОТПРАВЛЯЕМ КАРТИНКУ НА ФОРУМ
         byte_io = io.BytesIO()
         img.save(byte_io, 'PNG')
         byte_io.seek(0)
