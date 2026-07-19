@@ -60,12 +60,6 @@ COLOR_BORDER = (36, 38, 49)
 COLOR_TECH_GREY = (55, 58, 72)
 COLOR_FAINT_BURGUNDY = (70, 20, 35)
 
-SOCIALS = [
-    ("GH", "github.com/nahimasky"),
-    ("VK", "vk.ru/krlsky"),
-    ("TG", "tg.me/krlsky"),
-]
-
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -77,14 +71,13 @@ class handler(BaseHTTPRequestHandler):
         nick_text = f"{nick}."
         subtitle_text = "code by day, samp by night"
 
-        font_main, font_small, font_badge = get_fonts()
+        font_main, font_small, _unused = get_fonts()
 
-        # Ширина считается динамически под контент, но не меньше 560
+        # Ширина считается динамически под контент ника
         left_text_width = int(
             font_main.getlength(base_text) + font_main.getlength(nick_text)
         )
-        badge_block_width = len(SOCIALS) * 46
-        width = max(560, 80 + left_text_width + 40 + badge_block_width + 40)
+        width = max(360, 80 + left_text_width + 120)
         height = 60
 
         img = Image.new("RGB", (width, height))
