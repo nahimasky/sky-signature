@@ -29,12 +29,24 @@ def draw_github(draw, cx, cy, s):
 
 def draw_vk(draw, cx, cy, s, font=None):
     r = int(s * 0.30)
-    draw.rounded_rectangle(
-        [cx - r - 4, cy - r + 4, cx + r + 4, cy + r - 4], radius=4, fill=COLOR_WHITE
-    )
+    try:
+        draw.rounded_rectangle(
+            [cx - r - 4, cy - r + 4, cx + r + 4, cy + r - 4], radius=4, fill=COLOR_WHITE
+        )
+    except AttributeError:
+        draw.rectangle([cx - r - 4, cy - r + 4, cx + r + 4, cy + r - 4], fill=COLOR_WHITE)
+
     from PIL import ImageFont
     f = ImageFont.load_default()
-    draw.text((cx, cy), "VK", fill=COLOR_BG, font=f, anchor="mm")
+    try:
+        draw.text((cx, cy), "VK", fill=COLOR_BG, font=f, anchor="mm")
+    except TypeError:
+        # anchor не поддержан - центрируем вручную
+        try:
+            tw, th = f.getsize("VK")
+        except AttributeError:
+            tw, th = (14, 10)
+        draw.text((cx - tw / 2, cy - th / 2), "VK", fill=COLOR_BG, font=f)
 
 
 def draw_telegram(draw, cx, cy, s):
